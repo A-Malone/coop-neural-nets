@@ -83,8 +83,8 @@ class CoopGame(object):
 
 def main():
     game = CoopGame(
-        render=True,
-        max_moves=50
+        render=False,
+        max_moves=200
     )
     num_teams = 4
     team_size = 1
