@@ -11,8 +11,8 @@ class CoopGame(object):
 
     DIM = (600, 600)
 
-    # In seconds
-    DT = 0.25
+    FPS = 24
+    DT = 1.0/FPS
 
     game_objects = []
 
@@ -27,6 +27,7 @@ class CoopGame(object):
             self.play = self._render_and_play
 
     def setup(self, nets):
+        self.game_objects = []
         #Setup
         for team_num, team in enumerate(nets):
             for net in team:
@@ -79,12 +80,12 @@ class CoopGame(object):
 
             self.window.unlock()
             #Tick the clock
-            render_clock.tick(1 / self.DT)
+            render_clock.tick(self.FPS)
 
 def main():
     game = CoopGame(
-        render=False,
-        max_moves=200
+        render=True,
+        max_moves=1000
     )
     num_teams = 4
     team_size = 1
