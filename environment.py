@@ -1,101 +1,93 @@
 import numpy as np
+from pybrain.tools.shortcuts import buildNetwork
+import pygame
 
-#POSSIBLE MOVES
-class Move(object):
-    FORWARD = 1
-    TURN_LEFT = 2
-    TURN_RIGHT = 3
-    SHOOT = 4
-    PING = 5
-    NARROW_FOV = 6
-    WIDEN_FOV = 7
-
-class CoopPlayer(object):
-    """docstring for CoopPlayer"""
-
-    team = None
-    position = None
-    heading = None
-    fov_angle = None
-
-    ping = False
-
-    def __init__(self, net, team):
-        super(CoopPlayer, self).__init__()
-        self.nn = net
-        self.team = team
-
-    def setup(self, pos, heading, fov_angle):
-        self.position = pos
-        self.heading = heading
-        self.fov_angle = fov_angle
-
-    def get_view(self, players, bullets):
-        """
-        Returns what the player is able to see
-        Outputs:
-            Fov (in rad)
-            Num enemy            
-            Num Ally in view
-                Num Ally ping in view
-            Enemy bullets in view            
-        """
-        output = np.zeros(5)
-        output[0] = fov_angle
-        
-        for p in players:
-            if(self.is_in_fov(p.position)):
-                if(p.team != self.team):
-                    output[1] += 1
-                else:
-                    output[2] += 1
-                    if(p.ping):
-                        output[3] += 1
-
-        for b in bullets:
-            if(self.is_in_fov(bullets)):
-                output[4] += 1
-
-        return output
-
-    def is_in_fov(self, pos):
-        angle = np.atan2(*list(pos - self.position))
-        return abs((heading - angle)%(2*numpy.pi)) < self.fov_angle/2
-
-    def get_action(self, in_vals):
-        results = self.nn.activate(in_vals)
-        return results.index(max(results))
-
-    def update(self, move, timestep):
-        pass
+from gameobjects import CoopPlayer
 
 class CoopGame(object):
     """docstring for CoopGame"""
-    WIDTH = 600
-    HEIGHT = 600
 
-    players = None
+    window = None
 
-    def __init__(self, max_moves=100):
+    DIM = (600, 600)
+
+    # In seconds
+    DT = 0.25
+
+    game_objects = []
+
+    def __init__(self, render=False, max_moves=200):
         super(CoopGame, self).__init__()
-        self.max_moves = max_moves        
+        self.render = render
+        self.max_moves = max_moves
 
-    def playGame(self, nets):
+        if(self.render):
+            pygame.init()
+            self.window = pygame.display.set_mode(self.DIM)
+            self.play = self._render_and_play
 
+    def setup(self, nets):
         #Setup
-        self.players = [None for x in nets]
         for index, net in enumerate(nets):
-            self.players[index] = Player(net, int(index <= len(nets)//2))            
+            player = CoopPlayer(net, int(index <= len(nets)//2))
 
-            self.players[index].setup(
-                np.multiply(np.rand(2), (self.WIDTH, self.HEIGHT)),
-                0,
-                np.pi/3
-                )
+            #Asign random positions within the bounds
+            player.setup(np.random.rand(2) * self.DIM, 0, np.pi/3)
 
+            self.game_objects.append(player)
+
+    def _turn(self):
+        #print(self.game_objects)
+        for obj in self.game_objects:
+            obj.pre_update(self.game_objects)
+
+        for obj in self.game_objects:
+            obj.update(self.game_objects, self.DIM, self.DT)
+
+        for obj in self.game_objects:
+            obj.post_update(self.game_objects)
+
+        self.game_objects = filter(lambda x: x.active, self.game_objects)
+
+    def _render(self):
+        for obj in self.game_objects:
+            obj.render(self.window)
+
+    def play(self, nets):
+        #Main loop
+        current_turn = 0
+        while current_turn < self.max_moves:
+            self._turn()
+            current_turn+=1
+
+    def _render_and_play(self, nets):
+        self.setup(nets)
+
+        render_clock = pygame.time.Clock()
 
         #Main loop
-        current_move = 0
-        while current_move < self.max_moves:
-            for i in self.players:
-                inputs = player.get_view(self.players)
+        current_turn = 0
+        while current_turn < self.max_moves:
+
+            pygame.display.flip()
+            self.window.fill((0, 0, 0))
+            self.window.lock()
+
+            self._turn()
+            self._render()
+            current_turn+=1
+
+            self.window.unlock()
+            #Tick the clock
+            render_clock.tick(1 / self.DT)
+
+def main():
+    game = CoopGame(
+        render=True,
+        max_moves=50
+    )
+    nets = [buildNetwork(5, 8, 7) for x in range(4)]
+    game.play(nets)
+
+if __name__ == '__main__':
+    main()
