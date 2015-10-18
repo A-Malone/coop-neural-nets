@@ -2,7 +2,7 @@ import numpy as np
 from pybrain.tools.shortcuts import buildNetwork
 import pygame
 
-from gameobjects import CoopPlayer
+from coopplayer import CoopPlayer
 
 class CoopGame(object):
     """docstring for CoopGame"""
@@ -28,13 +28,13 @@ class CoopGame(object):
 
     def setup(self, nets):
         #Setup
-        for index, net in enumerate(nets):
-            player = CoopPlayer(net, int(index <= len(nets)//2))
+        for team_num, team in enumerate(nets):
+            for net in team:
+                player = CoopPlayer(net, team_num)
+                #Asign random positions within the bounds
+                player.setup(np.random.rand(2) * self.DIM, 0, np.pi/3)
 
-            #Asign random positions within the bounds
-            player.setup(np.random.rand(2) * self.DIM, 0, np.pi/3)
-
-            self.game_objects.append(player)
+                self.game_objects.append(player)
 
     def _turn(self):
         #print(self.game_objects)
@@ -86,7 +86,13 @@ def main():
         render=True,
         max_moves=50
     )
-    nets = [buildNetwork(5, 8, 7) for x in range(4)]
+    num_teams = 4
+    team_size = 1
+
+    nets = []
+    for team in range(num_teams):
+        nets.append([buildNetwork(5, 8, 7) for x in range(team_size)])
+
     game.play(nets)
 
 if __name__ == '__main__':
