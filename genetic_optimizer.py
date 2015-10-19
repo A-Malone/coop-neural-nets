@@ -17,19 +17,13 @@ class Optimizer(object):
         self.arg = arg
 
 
-    def create_individual(self, size, min_val, max_val):
-        """
-        create an individual with the number of traits size, with each trait in
-        the range specified by min_val and max_val
-        """
-        return [random_trait(min_val, max_val) for x in range(size)]
-
     def fitness(self, individual):
         """
 
         A simple fitness function that simply sums up the values of the traits,
         producing a value to map that individual's chance of reproduction.
         """
+        #TODO: Make this work
         return sum(individual)
 
 
@@ -43,23 +37,15 @@ class Optimizer(object):
                 if random.randint(0,100) < self.mutation_rate:
                     individual[position] = random_trait(min_val, max_val)
 
-    def random_trait(self, min_val, max_val):
-        """
-        creates random traits for the individuals
-        """
-        return random.randint(min_val,max_val)
-
     def reproduce(self, population, elitism=False):
         """
         Reproduces a population
         """
 
-        #TODO: Move this outside
-        scores = np.array([fitness(x) for x in population])
         if elitism:
             scores[np.argmax(scores)] *= 2
 
-        #Normalize
+        #Normalize scores
         scores /= sum(scores)
 
         new_pop = np.zeros(population.shape)
@@ -83,29 +69,39 @@ class Optimizer(object):
         child[index:] = (parents[1])[index:]
         return child
 
-    def run(self, num_teams, pop_size, gen_max, **kwargs):
+    def run(self, new_individual, teams, pop_size, gen_max, **kwargs):
         self.__dict__.update(kwargs)
+
+        #Create a sample individual
+        sample = new_individual()
+        num_features = len(sample._params)
+
+        # Create the populations
+        populations = np.zeros((teams[0], pop_size, num_features))
 
         for run in range(self.runs):
             #get the start time
             start_time = time.time()
 
-            #Create an initial population
-            population = [create_individual(trait_number, min_val, max_val) for x in range(trait_number)]
+            #Reset the population
+            for t in teams[0]:
+                for i in pop_size:
+                    populations[t,i,:] = new_individual._params
 
             for gen_count in range(gen_max):
-                new_population = reproduce(population)
-                mutate_population(new_population, min_val, max_val)
-                population = new_population
-            else:
-                print("The solution was not found")
-                data[0][run] = time.time()-start_time
-                data[1][run] = gen_max
 
-        total_time = sum(data[0])
-        average_time = total_time/len(data[0])
+                #TODO: Implement tournament fitness
+                scores = Tournament.play
+                for team, population in enumerate(populations):
+                    new_population = reproduce(scores[team,:], population)
+                    mutate_population(new_population, min_val, max_val)
+                    populations[team,:,:] = new_population
 
-        total_generations = sum(data[1])
-        average_gen = total_generations/len(data[1])
 
-        print("Total time: {}s, Total number of generations: {}, Average Time: {}, Average number of generations: {}".format(total_time,total_generations,average_time,average_gen))
+        #total_time = sum(data[0])
+        #average_time = total_time/len(data[0])
+
+        #total_generations = sum(data[1])
+        #average_gen = total_generations/len(data[1])
+
+        #print("Total time: {}s, Total number of generations: {}, Average Time: {}, Average number of generations: {}".format(total_time,total_generations,average_time,average_gen))
