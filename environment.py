@@ -13,7 +13,7 @@ class CoopGame(object):
 
     FPS = 24
     DT = 1.0/FPS
-    
+
     game_objects = []
 
     def __init__(self, render=False, max_moves=200):
@@ -46,6 +46,7 @@ class CoopGame(object):
 
     def get_results(self):
         for player in filter(lambda x : x is CoopPlayer, self.game_objects):
+            print(player.score)
             self.results[player.team, player.individual_id] = player.score
         return self.results
 
