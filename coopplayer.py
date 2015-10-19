@@ -19,6 +19,7 @@ class CoopPlayer(gameobjects.GameObject):
 
     #----Fields
     team = None
+    individual_id = None
     # State
     fov_angle = None
     ping = False
@@ -31,11 +32,12 @@ class CoopPlayer(gameobjects.GameObject):
     #Update
     next_move = None
 
-    def __init__(self, net, team):
+    def __init__(self, net, team, individual_id):
         super(CoopPlayer, self).__init__(CoopPlayer.RADIUS)
         score = 0
         self.nn = net
         self.team = team
+        self.individual_id = individual_id
 
     def setup(self, pos, heading, fov_angle):
         self.position = pos
