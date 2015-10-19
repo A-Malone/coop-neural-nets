@@ -104,8 +104,9 @@ class Optimizer(object):
                 tourney = TeamTournament(populations)
 
                 scores = tourney.organize(teams[1])
-                print("\n{}".format(gen_count))
-                print(scores)
+                print("\nGen: {}".format(gen_count))
+                for t in range(teams[0]):
+                    print(np.average(scores[t,:]))                
 
                 for team, population in enumerate(populations):
                     new_population = self.reproduce(scores[team,:], population)

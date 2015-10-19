@@ -29,7 +29,7 @@ class CoopPlayer(gameobjects.GameObject):
     #Score
     score = 0
 
-    #Update
+    # Moves
     next_move = None
 
     def __init__(self, net, team, individual_id):
@@ -37,6 +37,7 @@ class CoopPlayer(gameobjects.GameObject):
         self.nn = net
         self.team = team
         self.individual_id = individual_id
+        self.past_moves = set()
 
     def setup(self, pos, heading, fov_angle):
         self.position = pos
@@ -107,6 +108,10 @@ class CoopPlayer(gameobjects.GameObject):
         in_vals = self.get_view(objects)
         results = self.nn.activate(in_vals)
         self.next_move = np.argmax(results)
+        if(self.next_move not in self.past_moves):
+            self.score += 3*(len(self.past_moves))
+            self.past_moves.add(self.next_move)
+
 
     def update(self, objects, dim, dt):
         """
