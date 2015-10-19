@@ -34,7 +34,6 @@ class CoopPlayer(gameobjects.GameObject):
 
     def __init__(self, net, team, individual_id):
         super(CoopPlayer, self).__init__(CoopPlayer.RADIUS)
-        score = 0
         self.nn = net
         self.team = team
         self.individual_id = individual_id

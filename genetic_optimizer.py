@@ -49,15 +49,23 @@ class Optimizer(object):
             scores[np.argmax(scores)] *= 2
 
         #Normalize scores
-        scores /= sum(scores)
+        total_score = sum(scores)
+
+        if(total_score > 0):
+            scores /= total_score
+            choices = np.random.choice(
+                range(population.shape[0]),
+                (len(population), 2),
+                p=scores
+            )
+        else:
+            choices = np.random.choice(
+                range(population.shape[0]),
+                (len(population), 2)
+            )
 
         new_pop = np.zeros(population.shape)
 
-        choices = np.random.choice(
-            range(population.shape[0]),
-            (len(population), 2),
-            p=scores
-        )
         for index, parents in enumerate(choices):
             new_pop[index, :] = self.cross_over(map(lambda x:population[x], parents))
         return new_pop

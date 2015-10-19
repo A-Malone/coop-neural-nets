@@ -2,7 +2,7 @@ import numpy as np
 from pybrain.tools.shortcuts import buildNetwork
 import pygame
 
-from coopplayer import CoopPlayer
+import coopplayer
 
 class CoopGame(object):
     """docstring for CoopGame"""
@@ -37,7 +37,7 @@ class CoopGame(object):
                 #Create net and the player
                 net = buildNetwork(5, 8, 7)
                 net._params = teams[t,p,:]
-                player = CoopPlayer(net, t, p)
+                player = coopplayer.CoopPlayer(net, t, p)
 
                 #Asign random positions within the bounds
                 player.setup(np.random.rand(2) * self.DIM, 0, np.pi/3)
@@ -45,8 +45,7 @@ class CoopGame(object):
                 self.game_objects.append(player)
 
     def get_results(self):
-        for player in filter(lambda x : x is CoopPlayer, self.game_objects):
-            print(player.score)
+        for player in filter(lambda x : type(x) == coopplayer.CoopPlayer, self.game_objects):
             self.results[player.team, player.individual_id] = player.score
         return self.results
 
