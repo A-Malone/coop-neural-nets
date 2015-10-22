@@ -1,8 +1,8 @@
 import numpy as np
 import pygame
 
-from utils import clip_to_dim, clip_array_to_dim, out_of_bounds
-import coopplayer
+from colearning.utils import clip_to_dim, clip_array_to_dim, out_of_bounds
+from colearning.players import baseplayer
 
 #POSSIBLE MOVES
 class Move(object):
@@ -20,6 +20,10 @@ class Move(object):
             if v == move:
                 return k
         return None
+
+    @classmethod
+    def contains(cls, move):
+        return cls.to_text(move) != None
 
 
 class GameObject(object):
@@ -104,7 +108,7 @@ class Bullet(GameObject):
 
     def post_update(self, objects):
         if(self.active):
-            for obj in filter(lambda x: x is coopplayer.CoopPlayer, objects):
+            for obj in filter(lambda x: x is baseplayer.BasePlayer, objects):
                 if(self.collision(obj.pos)):
                     firer = filter(lambda x: x.object_id == firer_id, objects)[0]
                     obj.score -= 10

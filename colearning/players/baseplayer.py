@@ -1,11 +1,13 @@
+#GLOBAL IMPORTS
 import numpy as np
 import pygame
 
-import gameobjects
-from utils import clip_to_dim, clip_array_to_dim, TeamColors
+#PACKAGE IMPORTS
+from colearning.game import gameobjects
+from colearning.utils import clip_to_dim, clip_array_to_dim, TeamColors
 
-class CoopPlayer(gameobjects.GameObject):
-    """docstring for CoopPlayer"""
+class BasePlayer(gameobjects.GameObject):
+    """ The base class for all players. Handles all game-related logic """
 
     #----Constants
     VELOCITY = 40
@@ -20,10 +22,10 @@ class CoopPlayer(gameobjects.GameObject):
     #----Fields
     team = None
     individual_id = None
+
     # State
     fov_angle = None
     ping = False
-
     current_cooldown = 0
 
     #Score
@@ -32,17 +34,20 @@ class CoopPlayer(gameobjects.GameObject):
     # Moves
     next_move = None
 
-    def __init__(self, net, team, individual_id):
-        super(CoopPlayer, self).__init__(CoopPlayer.RADIUS)
-        self.nn = net
+    def __init__(self, net, ):
+        super(BasePlayer, self).__init__(CoopPlayer.RADIUS)
+
+    def initialize_player(team, individual_id):
+        """ Setup the player's external attributes """
         self.team = team
         self.individual_id = individual_id
-        self.past_moves = set()
 
     def setup(self, pos, heading, fov_angle):
+        """ Setup the player's game state """
         self.position = pos
         self.heading = heading
         self.fov_angle = fov_angle
+        self.past_moves = set()
 
     def get_view(self, objects):
         """
@@ -73,11 +78,28 @@ class CoopPlayer(gameobjects.GameObject):
         return output
 
     def is_in_fov(self, pos):
+        """ Returns whether a given location is in the FOV"""
         angle = np.atan2(*list(pos - self.position))
         return abs((heading - angle)%(2*np.pi)) < self.fov_angle/2
 
-    # Overrides
+    def select_move(self, move):
+        assert(Move.contains(move) and self._next_move is None)
+        self._next_move = move
+        if(move not in self._past_moves):
+            self.score += 3*(len(self.past_moves))
+            self.past_moves.add(move)
+
+    def get_next_move(self, move):
+        assert(self._next_move is not None)
+        ret = self._next_move
+        self._next_move = None
+        return ret
+
+    #----Overrides
+    #----------------------------------------------------
     def render(self, win):
+        """ Renders the player on the screen """
+
         super(CoopPlayer, self).render(win)
 
         #Draw FOV
@@ -104,14 +126,11 @@ class CoopPlayer(gameobjects.GameObject):
                 int(self.radius*1.2),
                 1)
 
-    def pre_update(self, objects):
-        in_vals = self.get_view(objects)
-        results = self.nn.activate(in_vals)
-        self.next_move = np.argmax(results)
-        if(self.next_move not in self.past_moves):
-            self.score += 3*(len(self.past_moves))
-            self.past_moves.add(self.next_move)
 
+    def pre_update(self, objects):
+        """ Get a move from the model """
+        in_vals = self.get_view(objects)
+        self.select_move(self.get_move(in_vals))
 
     def update(self, objects, dim, dt):
         """
@@ -121,17 +140,18 @@ class CoopPlayer(gameobjects.GameObject):
             self.current_cooldown -= dt
         #print(gameobjects.Move.to_text(self.next_move), self.next_move)
 
-        if(self.next_move == gameobjects.Move.FORWARD):
+        move = self.get_next_move()
+        if(move == gameobjects.Move.FORWARD):
             self.position += self.get_components(self.heading)*CoopPlayer.VELOCITY*dt
-        elif(self.next_move == gameobjects.Move.TURN_LEFT):
+        elif(move == gameobjects.Move.TURN_LEFT):
             self.heading += CoopPlayer.ANGULAR_VELOCITY*dt
-        elif(self.next_move == gameobjects.Move.TURN_RIGHT):
+        elif(move == gameobjects.Move.TURN_RIGHT):
             self.heading -= CoopPlayer.ANGULAR_VELOCITY*dt
-        elif(self.next_move == gameobjects.Move.WIDEN_FOV):
+        elif(move == gameobjects.Move.WIDEN_FOV):
             self.fov_angle += CoopPlayer.FOV_INCREMENT*dt
-        elif(self.next_move == gameobjects.Move.NARROW_FOV):
+        elif(move == gameobjects.Move.NARROW_FOV):
             self.fov_angle -= CoopPlayer.FOV_INCREMENT*dt
-        elif(self.next_move == gameobjects.Move.SHOOT):
+        elif(move == gameobjects.Move.SHOOT):
             if(self.current_cooldown <= 0):
                 objects.append(gameobjects.Bullet(self.object_id, np.copy(self.position), self.heading))
                 self.current_cooldown = CoopPlayer.SHOOT_COOLDOWN
@@ -147,3 +167,14 @@ class CoopPlayer(gameobjects.GameObject):
 
         #Truncate position to bounds
         clip_array_to_dim(self.position, dim)
+
+    #----VIRTUAL FUNTIONS
+    #----------------------------------------------------
+    def get_move(self, in_vals):
+        raise NotImplementedError('BasePlayer subclasses must reimplement get_move')
+
+    def initialize_model(self, params):
+        raise NotImplementedError('BasePlayer subclasses must reimplement initialize_model')
+
+    def param_dim(self):
+        raise NotImplementedError('BasePlayer subclasses must reimplement param_dim')

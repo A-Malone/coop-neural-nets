@@ -2,8 +2,6 @@ import numpy as np
 from pybrain.tools.shortcuts import buildNetwork
 import pygame
 
-import coopplayer
-
 class CoopGame(object):
     """docstring for CoopGame"""
 
@@ -26,31 +24,15 @@ class CoopGame(object):
             self.window = pygame.display.set_mode(self.DIM)
             self.play = self._render_and_play
 
-    def setup(self, teams):
-        self.game_objects = []
+    def setup(self, players):
+        self.game_objects = players
 
-        self.results = np.zeros(teams.shape[:2])
+        self.results = np.zeros(len(players))
 
-        #Setup
-        for t in range(teams.shape[0]):
-            for p in range(teams.shape[1]):
-                #Create net and the player
-                net = buildNetwork(5, 8, 7)
-                net._params = teams[t,p,:]
-                player = coopplayer.CoopPlayer(net, t, p)
-
-                #Asign random positions within the bounds
-                player.setup(np.random.rand(2) * self.DIM, 0, np.pi/3)
-
-                self.game_objects.append(player)
-
-    def get_results(self):
-        for player in filter(lambda x : type(x) == coopplayer.CoopPlayer, self.game_objects):
-            self.results[player.team, player.individual_id] = player.score
-        return self.results
+        for player in players:
+            player.setup(np.random.rand(2) * self.DIM, 0, np.pi/3)
 
     def _turn(self):
-        #print(self.game_objects)
         for obj in self.game_objects:
             obj.pre_update(self.game_objects)
 
@@ -66,8 +48,8 @@ class CoopGame(object):
         for obj in self.game_objects:
             obj.render(self.window)
 
-    def play(self, teams):
-        self.setup(teams)
+    def play(self, players, results):
+        self.setup(players)
 
         #Main loop
         current_turn = 0
@@ -75,10 +57,12 @@ class CoopGame(object):
             self._turn()
             current_turn+=1
 
-        return self.get_results()
+        #Update the results
+        for player in filter(lambda x : type(x) == coopplayer.CoopPlayer, self.game_objects):
+            results[player.team, player.individual_id] += player.score
 
-    def _render_and_play(self, nets):
-        self.setup(nets)
+    def _render_and_play(self, players, results):
+        self.setup(players)
 
         render_clock = pygame.time.Clock()
 
@@ -98,7 +82,9 @@ class CoopGame(object):
             #Tick the clock
             render_clock.tick(self.FPS)
 
-        return self.get_results()
+        #Update the results
+        for player in filter(lambda x : type(x) == coopplayer.CoopPlayer, self.game_objects):
+            results[player.team, player.individual_id] += player.score
 
 def main():
 

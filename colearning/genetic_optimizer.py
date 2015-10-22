@@ -2,9 +2,7 @@ import random
 import time
 
 import numpy as np
-from pybrain.tools.shortcuts import buildNetwork
-
-from tournament import TeamTournament
+from .tournament import TeamTournament
 
 class Optimizer(object):
     """docstring for Optimizer"""
@@ -84,9 +82,13 @@ class Optimizer(object):
         child[index:] = (parents[1])[index:]
         return child
 
-    def run(self, new_individual, teams, pop_size, gen_max, **kwargs):
+    def run(self, players, teams, pop_size, gen_max, **kwargs):
+        assert(len(players) > 0)
+        assert(len(players) == teams[0] * teams[1])
 
-        num_features = len(new_individual()._params)
+        num_features = players[0].param_dim()
+
+        tourney = TeamTournament(populations)
 
         # Create the populations
         populations = np.zeros((teams[0], pop_size, num_features))
@@ -95,36 +97,14 @@ class Optimizer(object):
             #get the start time
             start_time = time.time()
 
-            #Reset the population
-            for t in range(teams[0]):
-                for i in range(pop_size):
-                    populations[t,i,:] = new_individual()._params
-
             for gen_count in range(gen_max):
-                tourney = TeamTournament(populations)
-
-                scores = tourney.organize(teams[1])
+                scores = tourney.play_tournament(populations, players)
                 print("\nGen: {}".format(gen_count))
+
                 for t in range(teams[0]):
-                    print(np.average(scores[t,:]))                
+                    print(np.average(scores[t,:]))
 
                 for team, population in enumerate(populations):
                     new_population = self.reproduce(scores[team,:], population)
                     self.mutate_population(new_population)
                     populations[team,:,:] = new_population
-
-def main():
-    opt = Optimizer()
-    num_teams = 2
-    team_size = 2
-    def ind() : return buildNetwork(5, 8, 7)
-    opt.run(
-        ind,
-        (num_teams, team_size),
-        10,
-        200
-    )
-
-
-if __name__ == '__main__':
-    main()
