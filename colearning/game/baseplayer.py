@@ -3,10 +3,11 @@ import numpy as np
 import pygame
 
 #PACKAGE IMPORTS
-from colearning.game import gameobjects
+from .gameobjects import GameObject, Move
+from .bullet import Bullet
 from colearning.utils import clip_to_dim, clip_array_to_dim, TeamColors
 
-class BasePlayer(gameobjects.GameObject):
+class BasePlayer(GameObject):
     """ The base class for all players. Handles all game-related logic """
 
     #----Constants
@@ -32,12 +33,13 @@ class BasePlayer(gameobjects.GameObject):
     score = 0
 
     # Moves
-    next_move = None
+    _next_move = None
+    _past_moves = None
 
-    def __init__(self, net, ):
-        super(BasePlayer, self).__init__(CoopPlayer.RADIUS)
+    def __init__(self):
+        super(BasePlayer, self).__init__(BasePlayer.RADIUS)
 
-    def initialize_player(team, individual_id):
+    def initialize_player(self, team, individual_id):
         """ Setup the player's external attributes """
         self.team = team
         self.individual_id = individual_id
@@ -47,9 +49,10 @@ class BasePlayer(gameobjects.GameObject):
         self.position = pos
         self.heading = heading
         self.fov_angle = fov_angle
-        self.past_moves = set()
+        self.score = 0
+        self._past_moves = set()
 
-    def get_view(self, objects):
+    def get_view(self, players, bullets):
         """
         Returns what the player is able to see
         Outputs:
@@ -62,34 +65,34 @@ class BasePlayer(gameobjects.GameObject):
         output = np.zeros(5)
         output[0] = self.fov_angle
 
-        for obj in objects:
-            if(obj is CoopPlayer):
-                if(self.is_in_fov(obj.position)):
-                    if(obj.team != self.team):
-                        output[1] += 1
-                    else:
-                        output[2] += 1
-                        if(obj.ping):
-                            output[3] += 1
-            elif(obj is gameobjects.Bullet):
-                if(self.is_in_fov(obj)):
-                    output[4] += 1
+        for obj in players:
+            if(self.is_in_fov(obj.position)):
+                if(obj.team != self.team):
+                    output[1] += 1
+                else:
+                    output[2] += 1
+                    if(obj.ping):
+                        output[3] += 1
+
+        for obj in bullets:
+            if(self.is_in_fov(obj.position)):
+                output[4] += 1
 
         return output
 
     def is_in_fov(self, pos):
         """ Returns whether a given location is in the FOV"""
-        angle = np.atan2(*list(pos - self.position))
-        return abs((heading - angle)%(2*np.pi)) < self.fov_angle/2
+        angle = np.arctan2(*list(pos - self.position))
+        return abs((self.heading - angle)%(2*np.pi)) < self.fov_angle/2
 
     def select_move(self, move):
         assert(Move.contains(move) and self._next_move is None)
         self._next_move = move
         if(move not in self._past_moves):
-            self.score += 3*(len(self.past_moves))
-            self.past_moves.add(move)
+            self.score += 3*(len(self._past_moves))
+            self._past_moves.add(move)
 
-    def get_next_move(self, move):
+    def get_next_move(self):
         assert(self._next_move is not None)
         ret = self._next_move
         self._next_move = None
@@ -100,7 +103,7 @@ class BasePlayer(gameobjects.GameObject):
     def render(self, win):
         """ Renders the player on the screen """
 
-        super(CoopPlayer, self).render(win)
+        super(BasePlayer, self).render(win)
 
         #Draw FOV
         team_colour = TeamColors.get(self.team)
@@ -127,54 +130,66 @@ class BasePlayer(gameobjects.GameObject):
                 1)
 
 
-    def pre_update(self, objects):
+    def pre_update(self, players, bullets):
         """ Get a move from the model """
-        in_vals = self.get_view(objects)
+        in_vals = self.get_view(players, bullets)
         self.select_move(self.get_move(in_vals))
 
-    def update(self, objects, dim, dt):
+    def update(self, players, bullets, dim, dt):
         """
         Act on input chosen in pre_update
         """
         if(self.current_cooldown > 0):
             self.current_cooldown -= dt
-        #print(gameobjects.Move.to_text(self.next_move), self.next_move)
+        #print(Move.to_text(self._next_move), self._next_move)
 
         move = self.get_next_move()
-        if(move == gameobjects.Move.FORWARD):
-            self.position += self.get_components(self.heading)*CoopPlayer.VELOCITY*dt
-        elif(move == gameobjects.Move.TURN_LEFT):
-            self.heading += CoopPlayer.ANGULAR_VELOCITY*dt
-        elif(move == gameobjects.Move.TURN_RIGHT):
-            self.heading -= CoopPlayer.ANGULAR_VELOCITY*dt
-        elif(move == gameobjects.Move.WIDEN_FOV):
-            self.fov_angle += CoopPlayer.FOV_INCREMENT*dt
-        elif(move == gameobjects.Move.NARROW_FOV):
-            self.fov_angle -= CoopPlayer.FOV_INCREMENT*dt
-        elif(move == gameobjects.Move.SHOOT):
+        if(move == Move.FORWARD):
+            self.position += self.get_components(self.heading)*BasePlayer.VELOCITY*dt
+        elif(move == Move.TURN_LEFT):
+            self.heading += BasePlayer.ANGULAR_VELOCITY*dt
+        elif(move == Move.TURN_RIGHT):
+            self.heading -= BasePlayer.ANGULAR_VELOCITY*dt
+        elif(move == Move.WIDEN_FOV):
+            self.fov_angle += BasePlayer.FOV_INCREMENT*dt
+        elif(move == Move.NARROW_FOV):
+            self.fov_angle -= BasePlayer.FOV_INCREMENT*dt
+        elif(move == Move.SHOOT):
             if(self.current_cooldown <= 0):
-                objects.append(gameobjects.Bullet(self.object_id, np.copy(self.position), self.heading))
-                self.current_cooldown = CoopPlayer.SHOOT_COOLDOWN
+                bullets.append(Bullet(self.object_id, np.copy(self.position), self.heading))
+                self.current_cooldown = BasePlayer.SHOOT_COOLDOWN
 
         # Ping?
-        self.ping = (self.next_move == gameobjects.Move.PING)
+        self.ping = (self._next_move == Move.PING)
 
         # Truncate heading to bounds
         self.heading %= np.pi*2
 
         # Truncate FOV to bounds
-        self.fov_angle = clip_to_dim(self.fov_angle, CoopPlayer.MAX_FOV)
+        self.fov_angle = clip_to_dim(self.fov_angle, BasePlayer.MAX_FOV)
 
         #Truncate position to bounds
         clip_array_to_dim(self.position, dim)
 
     #----VIRTUAL FUNTIONS
     #----------------------------------------------------
+    def on_game_start(self):
+        raise NotImplementedError('BasePlayer subclasses must reimplement on_game_start')
+
+    def on_game_end(self):
+        raise NotImplementedError('BasePlayer subclasses must reimplement on_game_end')
+
     def get_move(self, in_vals):
         raise NotImplementedError('BasePlayer subclasses must reimplement get_move')
 
-    def initialize_model(self, params):
-        raise NotImplementedError('BasePlayer subclasses must reimplement initialize_model')
+    def set_params(self, params):
+        raise NotImplementedError('BasePlayer subclasses must reimplement set_params')
+
+    def get_params(self):
+        raise NotImplementedError('BasePlayer subclasses must reimplement set_params')
 
     def param_dim(self):
         raise NotImplementedError('BasePlayer subclasses must reimplement param_dim')
+
+    def reward_model(self, amount):
+        raise NotImplementedError('BasePlayer subclasses must reimplement reward_model')

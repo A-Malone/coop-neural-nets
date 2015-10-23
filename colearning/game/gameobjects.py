@@ -1,8 +1,6 @@
 import numpy as np
 import pygame
 
-from colearning.utils import clip_to_dim, clip_array_to_dim, out_of_bounds
-from colearning.players import baseplayer
 
 #POSSIBLE MOVES
 class Move(object):
@@ -29,7 +27,7 @@ class Move(object):
 class GameObject(object):
     """docstring for GameObject"""
 
-    object_id = 0
+    OBJECT_ID = 0
 
     # State
     position = None
@@ -41,7 +39,8 @@ class GameObject(object):
 
     def __init__(self, radius):
         #Increments the global id, but not our ID
-        GameObject.object_id += 1
+        self.object_id = GameObject.OBJECT_ID
+        GameObject.OBJECT_ID += 1
 
         self.radius = radius
 
@@ -77,41 +76,9 @@ class GameObject(object):
             [int(x) for x in np.rint(self.position + self.get_components(self.heading)*self.radius)],
             1)
 
-    def pre_update(self, objects):
-        pass
-
-    def post_update(self, objects):
+    def pre_update(self, players, bullets):
         pass
 
     # Pure virtual
-    def update(self, objects, dim, dt):
+    def update(self, players, bullets, dim, dt):
         raise NotImplementedError('Not implemented')
-
-class Bullet(GameObject):
-    """docstring for Bullet"""
-
-    # Constants
-    VELOCITY = 60
-    RADIUS = 4
-
-    firer_id = None
-
-    def __init__(self, firer_id, pos, heading):
-        super(Bullet, self).__init__(Bullet.RADIUS)
-        self.position = pos
-        self.heading = heading
-
-    def update(self, objects, dim, dt):
-        self.position += self.get_components(self.heading)*Bullet.VELOCITY*dt
-        if(out_of_bounds(self.position, dim)):
-            self.active = False
-
-    def post_update(self, objects):
-        if(self.active):
-            for obj in filter(lambda x: x is baseplayer.BasePlayer, objects):
-                if(self.collision(obj.pos)):
-                    firer = filter(lambda x: x.object_id == firer_id, objects)[0]
-                    obj.score -= 10
-                    firer.score += 10 if obj.team != firer.team else -10
-                    self.active = False
-                    break

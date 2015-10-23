@@ -1,4 +1,5 @@
-from .baseplayer import BasePlayer
+import numpy as np
+from colearning.game.baseplayer import BasePlayer
 
 class NeuralNetworkPlayer(BasePlayer):
     """ NN-backed player"""
@@ -7,11 +8,18 @@ class NeuralNetworkPlayer(BasePlayer):
         self.net = net
 
     def get_move(self, in_vals):
-        results = self.model.activate(in_vals)
+        results = self.net.activate(in_vals)
         return np.argmax(results)
 
-    def initialize_model(self, params):
+    def set_params(self, params):
         self.net._params = params
 
+    def get_params(self):
+        return self.net._params
+
     def param_dim(self):
-        return self.net.param_dim()
+        return self.net.paramdim
+
+    def reward(self, amount): pass        
+    def on_game_start(self): pass
+    def on_game_end(self): pass

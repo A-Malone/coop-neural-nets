@@ -1,7 +1,6 @@
-import random
-import time
-
+import random, sys, time
 import numpy as np
+
 from .tournament import TeamTournament
 
 class Optimizer(object):
@@ -46,21 +45,19 @@ class Optimizer(object):
         if elitism:
             scores[np.argmax(scores)] *= 2
 
+        #Clip the scores to 0
+        np.clip(scores, 0, sys.maxint, scores)
+        print(scores)
+
         #Normalize scores
         total_score = sum(scores)
+        scores /= total_score
 
-        if(total_score > 0):
-            scores /= total_score
-            choices = np.random.choice(
-                range(population.shape[0]),
-                (len(population), 2),
-                p=scores
-            )
-        else:
-            choices = np.random.choice(
-                range(population.shape[0]),
-                (len(population), 2)
-            )
+        choices = np.random.choice(
+            range(population.shape[0]),
+            (len(population), 2),
+            p=scores
+        )
 
         new_pop = np.zeros(population.shape)
 
@@ -88,10 +85,14 @@ class Optimizer(object):
 
         num_features = players[0].param_dim()
 
-        tourney = TeamTournament(populations)
+        #Create the tournament object
+        tourney = TeamTournament(teams)
 
         # Create the populations
         populations = np.zeros((teams[0], pop_size, num_features))
+        for t in range(teams[0]):
+            for p in range(teams[1]):
+                populations[t,p,:] = players[t*teams[1] + p].get_params()
 
         for run in range(self.runs):
             #get the start time
