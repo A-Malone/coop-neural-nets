@@ -20,6 +20,6 @@ class NeuralNetworkPlayer(BasePlayer):
     def param_dim(self):
         return self.net.paramdim
 
-    def reward(self, amount): pass        
+    def reward(self, amount): pass
     def on_game_start(self): pass
     def on_game_end(self): pass

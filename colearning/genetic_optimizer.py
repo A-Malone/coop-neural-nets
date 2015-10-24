@@ -47,6 +47,7 @@ class Optimizer(object):
 
         #Clip the scores to 0
         np.clip(scores, 0, sys.maxint, scores)
+        print(np.average(scores))
         print(scores)
 
         #Normalize scores
@@ -101,9 +102,6 @@ class Optimizer(object):
             for gen_count in range(gen_max):
                 scores = tourney.play_tournament(populations, players)
                 print("\nGen: {}".format(gen_count))
-
-                for t in range(teams[0]):
-                    print(np.average(scores[t,:]))
 
                 for team, population in enumerate(populations):
                     new_population = self.reproduce(scores[team,:], population)

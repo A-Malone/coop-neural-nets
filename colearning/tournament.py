@@ -76,5 +76,10 @@ class TeamTournament(object):
 
                 self._oneGame()
 
+                # Retrieve the players
+                for t in range(teams.shape[0]):
+                    for p in range(teams.shape[1]):
+                        self.populations[t,teams[t][p],:] = self.players[t*teams.shape[1] + p].get_params()
+
         self.results[:,:,0] /= self.results[:,:,1]
         return self.results[:,:,0]

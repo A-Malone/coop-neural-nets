@@ -1,4 +1,8 @@
 import numpy as np
+from pybrain.rl.learners.valuebased import ActionValueTable
+from pybrain.rl.agents import LearningAgent
+from pybrain.rl.learners import Q
+
 from colearning.game.baseplayer import BasePlayer
 
 class LearningAgentPlayer(BasePlayer):
@@ -6,10 +10,6 @@ class LearningAgentPlayer(BasePlayer):
     def __init__(self, agent):
         super(LearningAgentPlayer, self).__init__()
         self.agent = agent
-
-    def get_move(self, in_vals):
-        self.agent.integrateObservation(in_vals)
-        return self.agent.getAction()
 
     def set_params(self, params):
         self.agent.reset()
@@ -21,6 +21,10 @@ class LearningAgentPlayer(BasePlayer):
     def param_dim(self):
         return self.agent.learner.module.paramdim
 
+    def get_move(self, in_vals):
+        self.agent.integrateObservation(in_vals)
+        return self.agent.getAction()
+
     def reward(self, amount):
         self.agent.giveReward(amount)
 
@@ -29,3 +33,14 @@ class LearningAgentPlayer(BasePlayer):
 
     def on_game_end(self):
         self.agent.learn()
+
+class ActionQLearningPlayer(LearningAgentPlayer):
+    """docstring for ActionQLearningPlayer"""
+    def __init__(self, problem):
+
+        #Create the agent
+        controller = ActionValueTable(*problem)
+        controller.initialize(1.)
+        agent = LearningAgent(controller, Q())        
+
+        super(ActionQLearningPlayer, self).__init__(agent)

@@ -75,10 +75,3 @@ class GameObject(object):
             [int(x) for x in np.rint(self.position)],
             [int(x) for x in np.rint(self.position + self.get_components(self.heading)*self.radius)],
             1)
-
-    def pre_update(self, players, bullets):
-        pass
-
-    # Pure virtual
-    def update(self, players, bullets, dim, dt):
-        raise NotImplementedError('Not implemented')

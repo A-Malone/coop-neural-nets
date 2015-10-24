@@ -33,8 +33,7 @@ class BasePlayer(GameObject):
     score = 0
 
     # Moves
-    _next_move = None
-    _past_moves = None
+    past_moves = None
 
     def __init__(self):
         super(BasePlayer, self).__init__(BasePlayer.RADIUS)
@@ -50,7 +49,7 @@ class BasePlayer(GameObject):
         self.heading = heading
         self.fov_angle = fov_angle
         self.score = 0
-        self._past_moves = set()
+        self.past_moves = set()
 
     def get_view(self, players, bullets):
         """
@@ -84,19 +83,6 @@ class BasePlayer(GameObject):
         """ Returns whether a given location is in the FOV"""
         angle = np.arctan2(*list(pos - self.position))
         return abs((self.heading - angle)%(2*np.pi)) < self.fov_angle/2
-
-    def select_move(self, move):
-        assert(Move.contains(move) and self._next_move is None)
-        self._next_move = move
-        if(move not in self._past_moves):
-            self.score += 3*(len(self._past_moves))
-            self._past_moves.add(move)
-
-    def get_next_move(self):
-        assert(self._next_move is not None)
-        ret = self._next_move
-        self._next_move = None
-        return ret
 
     #----Overrides
     #----------------------------------------------------
@@ -133,17 +119,15 @@ class BasePlayer(GameObject):
     def pre_update(self, players, bullets):
         """ Get a move from the model """
         in_vals = self.get_view(players, bullets)
-        self.select_move(self.get_move(in_vals))
+        return self.get_move(in_vals)
 
-    def update(self, players, bullets, dim, dt):
+    def update(self, move, players, bullets, dim, dt):
         """
         Act on input chosen in pre_update
         """
         if(self.current_cooldown > 0):
             self.current_cooldown -= dt
-        #print(Move.to_text(self._next_move), self._next_move)
 
-        move = self.get_next_move()
         if(move == Move.FORWARD):
             self.position += self.get_components(self.heading)*BasePlayer.VELOCITY*dt
         elif(move == Move.TURN_LEFT):
@@ -160,7 +144,7 @@ class BasePlayer(GameObject):
                 self.current_cooldown = BasePlayer.SHOOT_COOLDOWN
 
         # Ping?
-        self.ping = (self._next_move == Move.PING)
+        self.ping = (move == Move.PING)
 
         # Truncate heading to bounds
         self.heading %= np.pi*2
@@ -191,5 +175,5 @@ class BasePlayer(GameObject):
     def param_dim(self):
         raise NotImplementedError('BasePlayer subclasses must reimplement param_dim')
 
-    def reward_model(self, amount):
-        raise NotImplementedError('BasePlayer subclasses must reimplement reward_model')
+    def reward(self, amount):
+        raise NotImplementedError('BasePlayer subclasses must reimplement reward')
