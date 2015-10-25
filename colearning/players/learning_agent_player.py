@@ -1,9 +1,9 @@
 import numpy as np
 from pybrain.rl.learners.valuebased import ActionValueNetwork
 from pybrain.rl.agents import LearningAgent
-from pybrain.rl.learners import Q
+from pybrain.rl.learners import NFQ
 
-from colearning.game.baseplayer import BasePlayer
+from . import BasePlayer
 
 class LearningAgentPlayer(BasePlayer):
     """ LearningAgent-backed player"""
@@ -29,10 +29,10 @@ class LearningAgentPlayer(BasePlayer):
     def reward(self, amount):
         self.agent.giveReward(amount)
 
-    def on_game_start(self):
+    def reset(self):
         self.agent.newEpisode()
 
-    def on_game_end(self):
+    def learn(self):
         self.agent.learn()
 
 class ActionQLearningPlayer(LearningAgentPlayer):
@@ -41,6 +41,6 @@ class ActionQLearningPlayer(LearningAgentPlayer):
 
         #Create the agent
         controller = ActionValueNetwork(*problem)
-        agent = LearningAgent(controller, Q())
+        agent = LearningAgent(controller, NFQ())
 
         super(ActionQLearningPlayer, self).__init__(agent)

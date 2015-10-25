@@ -1,9 +1,7 @@
 import itertools
 import numpy as np
 
-from colearning.game.coopgame import CoopGame
-from colearning.game.baseplayer import BasePlayer
-
+from colearning.game import CoopGame
 
 class TeamTournament(object):
     """

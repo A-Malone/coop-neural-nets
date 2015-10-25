@@ -2,11 +2,8 @@ import numpy as np
 from pybrain.tools.shortcuts import buildNetwork
 import pygame
 
-from .bullet import Bullet
-from .baseplayer import BasePlayer
-
 class CoopGame(object):
-    """docstring for CoopGame"""
+    """ Class that runs and renders the game """
 
     window = None
 
@@ -38,7 +35,6 @@ class CoopGame(object):
         for ind,player in enumerate(players):
             assert(player.object_id == ind)
             player.setup(np.random.rand(2) * self.DIM, 0, np.pi/3)
-            player.on_game_start()
 
         self.bullets = []
 
@@ -67,6 +63,7 @@ class CoopGame(object):
                     firer = filter(lambda x: x.object_id == bullet.firer_id, self.players)[0]
                     self.rewards[0, bullet.firer_id] += 10 if player.team != firer.team else -10
                     self.rewards[0, player.object_id] -= 10
+                    bullet.active = False
 
         #Remove innactive objects
         self.bullets = filter(lambda x: x.active, self.bullets)
@@ -82,6 +79,9 @@ class CoopGame(object):
         for obj in self.players:
             obj.render(self.window)
 
+        for obj in self.bullets:
+            obj.render(self.window)
+
     def play(self, players, results):
         self.setup(players)
 
@@ -95,7 +95,6 @@ class CoopGame(object):
         for player in self.players:
             results[player.team, player.individual_id, 0] += self.rewards[1,player.object_id]
             results[player.team, player.individual_id, 1] += 1
-            player.on_game_end()
 
     def _render_and_play(self, players, results):
         self.setup(players)
@@ -122,17 +121,3 @@ class CoopGame(object):
         for player in self.players:
             results[player.team, player.individual_id, 0] += player.score
             results[player.team, player.individual_id, 1] += 1
-            player.on_game_end()
-
-def main():
-
-    num_teams = 4
-    team_size = 1
-
-    game = CoopGame(
-        render=True,
-        max_moves=1000
-    )
-
-if __name__ == '__main__':
-    main()

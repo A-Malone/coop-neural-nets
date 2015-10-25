@@ -1,5 +1,5 @@
 import numpy as np
-from colearning.game.baseplayer import BasePlayer
+from . import BasePlayer
 
 class NeuralNetworkPlayer(BasePlayer):
     """ NN-backed player"""
@@ -21,5 +21,5 @@ class NeuralNetworkPlayer(BasePlayer):
         return self.net.paramdim
 
     def reward(self, amount): pass
-    def on_game_start(self): pass
-    def on_game_end(self): pass
+    def reset(self): pass
+    def learn(self): pass
