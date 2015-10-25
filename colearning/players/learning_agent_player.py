@@ -1,5 +1,5 @@
 import numpy as np
-from pybrain.rl.learners.valuebased import ActionValueTable
+from pybrain.rl.learners.valuebased import ActionValueNetwork
 from pybrain.rl.agents import LearningAgent
 from pybrain.rl.learners import Q
 
@@ -13,17 +13,18 @@ class LearningAgentPlayer(BasePlayer):
 
     def set_params(self, params):
         self.agent.reset()
-        self.agent.learner.module._params = params
+        self.agent.learner.module.network._params = params
 
     def get_params(self):
-        return self.agent.learner.module._params
+        return self.agent.learner.module.network._params
 
     def param_dim(self):
-        return self.agent.learner.module.paramdim
+        return self.agent.learner.module.network.paramdim
 
     def get_move(self, in_vals):
         self.agent.integrateObservation(in_vals)
-        return self.agent.getAction()
+        move = self.agent.getAction()
+        return move[0]
 
     def reward(self, amount):
         self.agent.giveReward(amount)
@@ -39,8 +40,7 @@ class ActionQLearningPlayer(LearningAgentPlayer):
     def __init__(self, problem):
 
         #Create the agent
-        controller = ActionValueTable(*problem)
-        controller.initialize(1.)
-        agent = LearningAgent(controller, Q())        
+        controller = ActionValueNetwork(*problem)
+        agent = LearningAgent(controller, Q())
 
         super(ActionQLearningPlayer, self).__init__(agent)
