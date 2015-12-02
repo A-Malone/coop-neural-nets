@@ -32,9 +32,14 @@ class CoopGame(object):
         self.moves = np.zeros(len(players))
         self.rewards = np.zeros((2, len(players)))
 
-        for ind,player in enumerate(players):
+        radius = float(min(self.DIM)) / 3
+        d_theta = 2 * np.pi / len(players)
+        center = np.array(self.DIM) / 2
+
+        for ind, player in enumerate(players):
             assert(player.object_id == ind)
-            player.setup(np.random.rand(2) * self.DIM, 0, np.pi/3)
+            pos = center +  np.array([radius * np.cos(d_theta * ind), radius * np.sin(d_theta * ind)])
+            player.setup(pos, -d_theta * ind, np.pi / 3)
 
         self.bullets = []
 

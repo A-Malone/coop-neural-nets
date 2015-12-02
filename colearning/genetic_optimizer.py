@@ -17,16 +17,6 @@ class Optimizer(object):
     def __init__(self):
         super(Optimizer, self).__init__()
 
-    def fitness(self, individual):
-        """
-
-        A simple fitness function that simply sums up the values of the traits,
-        producing a value to map that individual's chance of reproduction.
-        """
-        #TODO: Make this work
-        return sum(individual)
-
-
     def mutate_population(self, population):
         """
         A mutation funtion that mutates the individuals.
@@ -47,8 +37,8 @@ class Optimizer(object):
 
         #Clip the scores to 0
         np.clip(scores, 0, sys.maxint, scores)
-        print(np.average(scores))
-        print(scores)
+        #print(np.average(scores))
+        #print(scores)
 
         #Normalize scores
         total_score = sum(scores)

@@ -29,7 +29,7 @@ class TeamTournament(object):
         else:
             self.results.fill(0.0)
 
-    def _generateMatchups(self, min_matches=1):
+    def _generateMatchups(self, min_matches=10):
         """
         Generate a list of matchups, ensures all players get at least min_match
         matches
